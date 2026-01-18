@@ -1,0 +1,8 @@
+# Production requirements
+-r base.txt
+
+# Production server
+gunicorn>=21.2.0
+
+# Monitoring (optional)
+# sentry-sdk[fastapi]>=1.40.0
