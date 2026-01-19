@@ -72,6 +72,13 @@ async def create_execution_log(
 
         # Auto-create ReviewQueue item for blocked inputs with content moderation violations
         _create_review_queue_for_blocked_input(db, execution_log)
+        
+        # Commit any ReviewQueue items that were added
+        try:
+            db.commit()
+        except:
+            # If review queue commit fails, it's okay - log still exists
+            pass
 
         return execution_log
 
@@ -285,13 +292,9 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
         )
 
         db.add(review_item)
-        db.commit()
-        
-        # Log successful creation for debugging
-        print(f"[ReviewQueue] Created item {review_item.id} for execution_log {execution_log.id}")
+        db.flush()  # Flush to validate, but don't commit (caller commits)
 
     except Exception as e:
         # Fail open - don't crash if ReviewQueue creation fails
-        db.rollback()
+        # Just log and continue - execution log already committed
         print(f"[ReviewQueue] Failed to create item: {str(e)}")
-        pass
