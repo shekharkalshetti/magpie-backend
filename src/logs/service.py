@@ -256,16 +256,25 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
 
         moderation_data = execution_log.content_moderation
 
-        # Check if this was a blocking violation (violations present)
+        # Check if this was a blocking violation
+        # Can have violations list OR just blocked=True / action=block
         violations = moderation_data.get('violations', [])
-        if not violations:
+        is_blocked = moderation_data.get('blocked', False)
+        action = moderation_data.get('action', '')
+        
+        # Skip if not blocked and no violations
+        if not violations and not is_blocked and action != 'block':
             return
 
-        # Extract violation details
+        # Extract violation details (may be empty if just blocked without specific violations)
         violated_policies = [v.get('category', '') for v in violations]
+        
+        # If no specific policies but blocked, add generic "content_policy_violation"
+        if not violated_policies and (is_blocked or action == 'block'):
+            violated_policies = ['content_policy_violation']
 
-        # Get max severity from violations
-        max_severity = "low"
+        # Get max severity from violations, or default to high if blocked without violations
+        max_severity = "high"  # Default for blocked content
         for v in violations:
             severity_val = v.get('severity', 'low')
             if severity_val == 'critical':
