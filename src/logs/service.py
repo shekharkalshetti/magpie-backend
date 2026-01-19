@@ -273,8 +273,7 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
             execution_log_id=execution_log.id,
             project_id=execution_log.project_id,
             content_type=ContentType.USER_INPUT.value,
-            content_text=execution_log.input[:
-                                             2000] if execution_log.input else "",
+            content_text=execution_log.input[:2000] if execution_log.input else "",
             severity=ModerationSeverity(max_severity).value,
             flagged_policies=violated_policies,
             violation_reasons={
@@ -287,8 +286,12 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
 
         db.add(review_item)
         db.commit()
+        
+        # Log successful creation for debugging
+        print(f"[ReviewQueue] Created item {review_item.id} for execution_log {execution_log.id}")
 
     except Exception as e:
         # Fail open - don't crash if ReviewQueue creation fails
         db.rollback()
+        print(f"[ReviewQueue] Failed to create item: {str(e)}")
         pass
