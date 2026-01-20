@@ -101,6 +101,7 @@ cython_debug/
 .Trashes
 ehthumbs.db
 Thumbs.db
+dump.rdb
 
 # Local configuration (keep .env.example)
 .env

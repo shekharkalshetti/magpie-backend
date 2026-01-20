@@ -75,7 +75,6 @@ echo -e "${GREEN}✓ PostgreSQL container created and running${NC}"
 
 # Step 2: Install backend dependencies
 echo -e "\n${YELLOW}Step 2: Installing backend dependencies...${NC}"
-cd backend
 python3 -m pip install -r requirements.txt
 echo -e "${GREEN}✓ Backend dependencies installed${NC}"
 
@@ -83,11 +82,11 @@ echo -e "${GREEN}✓ Backend dependencies installed${NC}"
 echo -e "\n${YELLOW}Step 3: Installing SDK...${NC}"
 cd ../sdk
 python3 -m pip install -e .
+cd ../backend
 echo -e "${GREEN}✓ SDK installed in development mode${NC}"
 
 # Step 4: Setup environment variables
 echo -e "\n${YELLOW}Step 4: Setting up environment...${NC}"
-cd ../backend
 
 if [ ! -f .env ]; then
     echo -e "${YELLOW}Creating .env file...${NC}"

@@ -11,7 +11,7 @@ from datetime import datetime
 from src.tasks.celery_app import app
 from src.database import SessionLocal
 from src.models import ReviewQueue, ExecutionLog, ContentType, ModerationSeverity
-from triton.content_moderation import get_moderator
+from magpie_ai.content_moderation import get_moderator
 
 
 @app.task(bind=True, max_retries=3, queue="moderation")

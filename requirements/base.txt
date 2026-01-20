@@ -19,3 +19,6 @@ bcrypt>=4.1.1
 # Async task processing
 celery>=5.3.4
 redis>=5.0.0
+
+# SDK - LLM monitoring and metadata tracking
+magpie-ai>=0.2.3

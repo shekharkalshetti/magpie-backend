@@ -72,7 +72,7 @@ async def create_execution_log(
 
         # Auto-create ReviewQueue item for blocked inputs with content moderation violations
         _create_review_queue_for_blocked_input(db, execution_log)
-        
+
         # Commit any ReviewQueue items that were added
         try:
             db.commit()
@@ -261,14 +261,14 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
         violations = moderation_data.get('violations', [])
         is_blocked = moderation_data.get('blocked', False)
         action = moderation_data.get('action', '')
-        
+
         # Skip if not blocked and no violations
         if not violations and not is_blocked and action != 'block':
             return
 
         # Extract violation details (may be empty if just blocked without specific violations)
         violated_policies = [v.get('category', '') for v in violations]
-        
+
         # If no specific policies but blocked, add generic "content_policy_violation"
         if not violated_policies and (is_blocked or action == 'block'):
             violated_policies = ['content_policy_violation']
@@ -289,7 +289,8 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
             execution_log_id=execution_log.id,
             project_id=execution_log.project_id,
             content_type=ContentType.USER_INPUT.value,
-            content_text=execution_log.input[:2000] if execution_log.input else "",
+            content_text=execution_log.input[:
+                                             2000] if execution_log.input else "",
             severity=ModerationSeverity(max_severity).value,
             flagged_policies=violated_policies,
             violation_reasons={
