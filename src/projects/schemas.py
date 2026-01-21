@@ -24,6 +24,14 @@ class ProjectCreate(BaseModel):
     description: str | None = Field(None, description="Project description")
 
 
+class ProjectUpdate(BaseModel):
+    """Request body for updating a project."""
+
+    name: str | None = Field(None, min_length=1, max_length=255,
+                             description="Project name")
+    description: str | None = Field(None, description="Project description")
+
+
 class ProjectResponse(CustomBaseModel):
     """Response model for a project."""
 

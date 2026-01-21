@@ -18,6 +18,7 @@ from src.config import settings
 from src.constants import SHOW_DOCS_ENVIRONMENTS
 from src.database import create_tables
 from src.audit_logs.router import router as audit_logs_router
+from src.auth.router import router as api_keys_router
 from src.logs.router import router as logs_router
 from src.policies.router import router as policies_router
 from src.projects.router import router as projects_router
@@ -74,6 +75,11 @@ app.include_router(
     projects_router,
     prefix="/api/v1/projects",
     tags=["Projects"],
+)
+app.include_router(
+    api_keys_router,
+    prefix="/api/v1",
+    tags=["API Keys"],
 )
 app.include_router(
     audit_logs_router,

@@ -38,7 +38,7 @@ class ReviewQueueService:
     @staticmethod
     def get_review_item(db: Session, item_id: UUID):
         """Get a specific review queue item."""
-        return db.query(ReviewQueue).filter_by(id=item_id).first()
+        return db.query(ReviewQueue).filter_by(id=str(item_id)).first()
 
     @staticmethod
     def update_review_item(
@@ -49,7 +49,7 @@ class ReviewQueueService:
         reviewed_by_user_id: str,
     ):
         """Update a review queue item with decision and notes."""
-        item = db.query(ReviewQueue).filter_by(id=item_id).first()
+        item = db.query(ReviewQueue).filter_by(id=str(item_id)).first()
         if not item:
             return None
 

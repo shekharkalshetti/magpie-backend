@@ -15,6 +15,7 @@ from src.projects.schemas import (
     MetadataKeyCreate,
     MetadataKeyResponse,
     ProjectCreate,
+    ProjectUpdate,
     ProjectResponse,
 )
 
@@ -77,6 +78,26 @@ async def get_project(
     project: Project = Depends(valid_project_id),
 ):
     """Get a specific project by ID."""
+    return ProjectResponse.from_orm_model(project)
+
+
+@router.patch(
+    "/{project_id}",
+    response_model=ProjectResponse,
+    summary="Update a project",
+    description="Update project name or description.",
+)
+async def update_project(
+    project_id: str,
+    project_data: ProjectUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Update a project's name or description.
+
+    At least one field must be provided.
+    """
+    project = await service.update_project(db, project_id, project_data)
     return ProjectResponse.from_orm_model(project)
 
 

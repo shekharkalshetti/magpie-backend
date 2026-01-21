@@ -15,7 +15,7 @@ from src.projects.exceptions import (
     ProjectNameExistsError,
     ProjectNotFoundError,
 )
-from src.projects.schemas import MetadataKeyCreate, ProjectCreate
+from src.projects.schemas import MetadataKeyCreate, ProjectCreate, ProjectUpdate
 
 
 async def create_project(db: Session, data: ProjectCreate) -> Project:
@@ -76,6 +76,45 @@ async def list_projects(db: Session, skip: int = 0, limit: int = 100) -> list[Pr
         List of Project objects
     """
     return db.query(Project).offset(skip).limit(limit).all()
+
+
+async def update_project(db: Session, project_id: str, data: ProjectUpdate) -> Project:
+    """
+    Update a project.
+
+    Args:
+        db: Database session
+        project_id: Project ID to update
+        data: Project update data
+
+    Returns:
+        Updated Project object
+
+    Raises:
+        ProjectNotFoundError: If project doesn't exist
+        ProjectNameExistsError: If new name already exists
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+
+    if not project:
+        raise ProjectNotFoundError(project_id)
+
+    # Check if new name already exists (if name is being updated)
+    if data.name and data.name != project.name:
+        existing = db.query(Project).filter(Project.name == data.name).first()
+        if existing:
+            raise ProjectNameExistsError(data.name)
+
+    # Update fields
+    if data.name is not None:
+        project.name = data.name
+    if data.description is not None:
+        project.description = data.description
+
+    db.commit()
+    db.refresh(project)
+
+    return project
 
 
 async def delete_project(db: Session, project_id: str) -> None:

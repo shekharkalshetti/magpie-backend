@@ -193,14 +193,9 @@ cd ..
 # Step 8: Create environment file for examples
 echo -e "\n${YELLOW}Step 8: Creating environment file for examples...${NC}"
 cat > .env.test << EOF
-# Triton Configuration for Smoke Test
-
-# Backend & Project
-TRITON_BACKEND_URL=http://localhost:8000
-TRITON_PROJECT_ID=$PROJECT_ID
-
-# SDK Authentication (API Key)
-TRITON_API_KEY=$API_KEY
+MAGPIE_BACKEND_URL=http://localhost:8000
+MAGPIE_PROJECT_ID=$PROJECT_ID
+MAGPIE_API_KEY=$API_KEY
 
 # Portal Authentication (User Login)
 ADMIN_EMAIL=$ADMIN_EMAIL
