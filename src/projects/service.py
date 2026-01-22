@@ -9,22 +9,24 @@ from typing import Any
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from src.models import MetadataKey, MetadataType, Project
+from src.models import MetadataKey, MetadataType, Project, ProjectUser
 from src.projects.exceptions import (
     MetadataKeyExistsError,
     ProjectNameExistsError,
     ProjectNotFoundError,
 )
 from src.projects.schemas import MetadataKeyCreate, ProjectCreate, ProjectUpdate
+from src.users.models import UserRole
 
 
-async def create_project(db: Session, data: ProjectCreate) -> Project:
+async def create_project(db: Session, data: ProjectCreate, user_id: str) -> Project:
     """
-    Create a new project.
+    Create a new project and add the creating user as owner.
 
     Args:
         db: Database session
         data: Project creation data
+        user_id: ID of the user creating the project
 
     Returns:
         Created Project object
@@ -43,6 +45,16 @@ async def create_project(db: Session, data: ProjectCreate) -> Project:
     )
 
     db.add(project)
+    db.flush()  # Flush to get project.id before creating membership
+
+    # Add the creating user as admin/owner
+    project_user = ProjectUser(
+        project_id=project.id,
+        user_id=user_id,
+        role=UserRole.ADMIN,
+    )
+    db.add(project_user)
+
     db.commit()
     db.refresh(project)
 

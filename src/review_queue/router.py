@@ -28,7 +28,7 @@ async def get_review_queue(
     project_id: str,
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user_from_token),
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     severity: Optional[str] = None,
     content_type: Optional[str] = None,
     skip: int = 0,
@@ -61,7 +61,7 @@ async def get_review_queue(
     items, total = ReviewQueueService.get_project_review_queue(
         db=db,
         project_id=project_id,
-        status=status,
+        status=status_filter,
         severity=severity,
         content_type=content_type,
         skip=skip,

@@ -18,6 +18,8 @@ from src.projects.schemas import (
     ProjectUpdate,
     ProjectResponse,
 )
+from src.users.router import get_current_user_from_token
+from src.users.schemas import UserResponse
 
 router = APIRouter()
 
@@ -36,15 +38,16 @@ router = APIRouter()
 )
 async def create_project(
     project_data: ProjectCreate,
+    current_user: UserResponse = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
 ):
     """
     Create a new project.
 
     Returns the project_id which is needed for API key generation.
-    This endpoint does not require authentication.
+    The creating user is automatically added as the project owner.
     """
-    project = await service.create_project(db, project_data)
+    project = await service.create_project(db, project_data, current_user.id)
     return ProjectResponse.from_orm_model(project)
 
 
