@@ -59,6 +59,12 @@ if ! docker ps &> /dev/null; then
     echo ""
     echo -e "${YELLOW}Starting Docker daemon...${NC}"
     
+    # Clean up any existing Docker data if using overlayfs
+    if [ -d "/var/lib/docker" ]; then
+        echo -e "${YELLOW}Cleaning up old Docker data...${NC}"
+        rm -rf /var/lib/docker/*
+    fi
+    
     # Start Docker daemon in background with flags for restricted environments
     # --iptables=false and --bridge=none are needed in some containerized environments
     # --storage-driver=vfs is slower but works in restricted environments
@@ -87,6 +93,8 @@ if ! docker ps &> /dev/null; then
         tail -20 /tmp/dockerd.log
         echo ""
         echo -e "${YELLOW}Try running manually:${NC}"
+        echo "  pkill dockerd"
+        echo "  rm -rf /var/lib/docker/*"
         echo "  dockerd --iptables=false --bridge=none --storage-driver=vfs &"
         echo "  # Wait a few seconds, then:"
         echo "  ./deploy.sh"
@@ -95,6 +103,36 @@ if ! docker ps &> /dev/null; then
     fi
 else
     echo -e "${GREEN}✅ Docker daemon is running${NC}"
+    
+    # Check if using the correct storage driver
+    STORAGE_DRIVER=$(docker info 2>/dev/null | grep "Storage Driver" | awk '{print $3}')
+    if [ "$STORAGE_DRIVER" != "vfs" ]; then
+        echo -e "${YELLOW}⚠️  Docker is using ${STORAGE_DRIVER} storage driver${NC}"
+        echo -e "${YELLOW}   Restarting with vfs storage driver for compatibility...${NC}"
+        
+        # Kill existing daemon
+        pkill dockerd
+        sleep 3
+        
+        # Clean up
+        rm -rf /var/lib/docker/*
+        
+        # Restart with vfs
+        dockerd --iptables=false --bridge=none --storage-driver=vfs > /tmp/dockerd.log 2>&1 &
+        
+        # Wait for startup
+        echo -n "Waiting for Docker daemon"
+        for i in {1..30}; do
+            if docker ps &> /dev/null 2>&1; then
+                echo ""
+                echo -e "${GREEN}✅ Docker daemon restarted with vfs storage${NC}"
+                break
+            fi
+            echo -n "."
+            sleep 1
+        done
+        echo ""
+    fi
 fi
 
 USE_SUDO="${USE_SUDO:-}"
