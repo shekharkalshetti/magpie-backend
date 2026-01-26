@@ -55,30 +55,41 @@ fi
 # Check if Docker daemon is running
 if ! docker ps &> /dev/null; then
     echo ""
-    echo -e "${RED}❌ Docker daemon is not accessible${NC}"
+    echo -e "${YELLOW}⚠️  Docker daemon is not accessible${NC}"
     echo ""
     echo -e "${YELLOW}Attempting to start Docker daemon...${NC}"
-    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null
-    sleep 3
     
-    if ! docker ps &> /dev/null; then
-        echo -e "${RED}Still cannot access Docker. Trying with sudo...${NC}"
-        echo ""
-        echo -e "${YELLOW}Note: You may need to:${NC}"
-        echo "  1. Log out and log back in (for group permissions)"
-        echo "  2. Or run: newgrp docker"
-        echo ""
-        
-        # Check if we can use sudo docker
-        if sudo docker ps &> /dev/null; then
-            echo -e "${YELLOW}Docker works with sudo. Continuing with sudo...${NC}"
-            USE_SUDO="sudo"
-        else
-            echo -e "${RED}Cannot access Docker even with sudo.${NC}"
-            exit 1
+    # Try multiple methods to start Docker
+    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+    
+    # Wait for Docker daemon to be ready (up to 30 seconds)
+    echo -e "${YELLOW}Waiting for Docker daemon to start...${NC}"
+    for i in {1..30}; do
+        if docker ps &> /dev/null 2>&1; then
+            echo -e "${GREEN}✅ Docker daemon started successfully${NC}"
+            break
         fi
-    else
-        echo -e "${GREEN}✅ Docker daemon started${NC}"
+        if sudo docker ps &> /dev/null 2>&1; then
+            echo -e "${GREEN}✅ Docker daemon started (requires sudo)${NC}"
+            USE_SUDO="sudo"
+            break
+        fi
+        echo -n "."
+        sleep 1
+    done
+    echo ""
+    
+    # Final check
+    if ! docker ps &> /dev/null 2>&1 && ! sudo docker ps &> /dev/null 2>&1; then
+        echo ""
+        echo -e "${RED}❌ Failed to start Docker daemon${NC}"
+        echo ""
+        echo -e "${YELLOW}Please try:${NC}"
+        echo "  1. sudo systemctl status docker"
+        echo "  2. sudo journalctl -xeu docker"
+        echo "  3. Manually start: sudo dockerd"
+        echo ""
+        exit 1
     fi
 else
     echo -e "${GREEN}✅ Docker daemon is running${NC}"
