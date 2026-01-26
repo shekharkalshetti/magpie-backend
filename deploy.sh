@@ -57,21 +57,18 @@ if ! docker ps &> /dev/null; then
     echo ""
     echo -e "${YELLOW}⚠️  Docker daemon is not accessible${NC}"
     echo ""
-    echo -e "${YELLOW}Attempting to start Docker daemon...${NC}"
+    echo -e "${YELLOW}Starting Docker daemon...${NC}"
     
-    # Try multiple methods to start Docker
-    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null || true
+    # Start Docker daemon in background
+    dockerd > /tmp/dockerd.log 2>&1 &
+    DOCKERD_PID=$!
     
     # Wait for Docker daemon to be ready (up to 30 seconds)
-    echo -e "${YELLOW}Waiting for Docker daemon to start...${NC}"
+    echo -n "Waiting for Docker daemon"
     for i in {1..30}; do
         if docker ps &> /dev/null 2>&1; then
+            echo ""
             echo -e "${GREEN}✅ Docker daemon started successfully${NC}"
-            break
-        fi
-        if sudo docker ps &> /dev/null 2>&1; then
-            echo -e "${GREEN}✅ Docker daemon started (requires sudo)${NC}"
-            USE_SUDO="sudo"
             break
         fi
         echo -n "."
@@ -80,14 +77,17 @@ if ! docker ps &> /dev/null; then
     echo ""
     
     # Final check
-    if ! docker ps &> /dev/null 2>&1 && ! sudo docker ps &> /dev/null 2>&1; then
+    if ! docker ps &> /dev/null 2>&1; then
         echo ""
         echo -e "${RED}❌ Failed to start Docker daemon${NC}"
         echo ""
-        echo -e "${YELLOW}Please try:${NC}"
-        echo "  1. sudo systemctl status docker"
-        echo "  2. sudo journalctl -xeu docker"
-        echo "  3. Manually start: sudo dockerd"
+        echo -e "${YELLOW}Docker daemon logs:${NC}"
+        tail -20 /tmp/dockerd.log
+        echo ""
+        echo -e "${YELLOW}Try running manually:${NC}"
+        echo "  dockerd &"
+        echo "  # Wait a few seconds, then:"
+        echo "  ./deploy.sh"
         echo ""
         exit 1
     fi
