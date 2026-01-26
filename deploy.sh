@@ -59,8 +59,10 @@ if ! docker ps &> /dev/null; then
     echo ""
     echo -e "${YELLOW}Starting Docker daemon...${NC}"
     
-    # Start Docker daemon in background
-    dockerd > /tmp/dockerd.log 2>&1 &
+    # Start Docker daemon in background with flags for restricted environments
+    # --iptables=false and --bridge=none are needed in some containerized environments
+    # --storage-driver=vfs is slower but works in restricted environments
+    dockerd --iptables=false --bridge=none --storage-driver=vfs > /tmp/dockerd.log 2>&1 &
     DOCKERD_PID=$!
     
     # Wait for Docker daemon to be ready (up to 30 seconds)
@@ -85,7 +87,7 @@ if ! docker ps &> /dev/null; then
         tail -20 /tmp/dockerd.log
         echo ""
         echo -e "${YELLOW}Try running manually:${NC}"
-        echo "  dockerd &"
+        echo "  dockerd --iptables=false --bridge=none --storage-driver=vfs &"
         echo "  # Wait a few seconds, then:"
         echo "  ./deploy.sh"
         echo ""
