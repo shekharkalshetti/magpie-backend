@@ -52,6 +52,40 @@ else
     echo -e "${GREEN}✅ Docker Compose already installed${NC}"
 fi
 
+# Check if Docker daemon is running
+if ! docker ps &> /dev/null; then
+    echo ""
+    echo -e "${RED}❌ Docker daemon is not accessible${NC}"
+    echo ""
+    echo -e "${YELLOW}Attempting to start Docker daemon...${NC}"
+    sudo systemctl start docker 2>/dev/null || sudo service docker start 2>/dev/null
+    sleep 3
+    
+    if ! docker ps &> /dev/null; then
+        echo -e "${RED}Still cannot access Docker. Trying with sudo...${NC}"
+        echo ""
+        echo -e "${YELLOW}Note: You may need to:${NC}"
+        echo "  1. Log out and log back in (for group permissions)"
+        echo "  2. Or run: newgrp docker"
+        echo ""
+        
+        # Check if we can use sudo docker
+        if sudo docker ps &> /dev/null; then
+            echo -e "${YELLOW}Docker works with sudo. Continuing with sudo...${NC}"
+            USE_SUDO="sudo"
+        else
+            echo -e "${RED}Cannot access Docker even with sudo.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${GREEN}✅ Docker daemon started${NC}"
+    fi
+else
+    echo -e "${GREEN}✅ Docker daemon is running${NC}"
+fi
+
+USE_SUDO="${USE_SUDO:-}"
+
 # ============================================================
 # Step 2: Clone Repositories
 # ============================================================
@@ -169,11 +203,16 @@ echo ""
 
 cd backend
 echo -e "${YELLOW}Starting PostgreSQL, Redis, Backend, Celery, and Frontend...${NC}"
-docker-compose up -d
+$USE_SUDO docker-compose up -d
 
 echo ""
 echo -e "${YELLOW}Waiting for services to be ready...${NC}"
 sleep 10
+
+# Show service status
+echo ""
+echo -e "${BLUE}Service Status:${NC}"
+$USE_SUDO docker-compose ps
 
 # ============================================================
 # Done!
@@ -197,5 +236,8 @@ echo "  • Reattach to vLLM:  ${YELLOW}tmux attach -t vllm${NC} (if using tmux)
 echo ""
 echo -e "${YELLOW}Admin credentials:${NC}"
 echo "  Check backend logs for admin user details"
-echo "  ${YELLOW}docker-compose logs backend | grep -A 5 'Admin user'${NC}"
+echo "  ${YELLOW}${USE_SUDO} docker-compose logs backend | grep -A 5 'Admin user'${NC}"
+echo ""
+echo -e "${YELLOW}Note:${NC} If you needed sudo, add it to all docker-compose commands:"
+echo "  ${YELLOW}${USE_SUDO} docker-compose logs -f${NC}"
 echo ""
