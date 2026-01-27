@@ -2,7 +2,7 @@
 """
 Simple script to create an admin user without importing all models
 """
-from src.auth.utils import get_password_hash
+from src.auth.utils import hash_password
 from src.config import settings
 from sqlalchemy import create_engine, text
 import os
@@ -22,7 +22,7 @@ def create_admin_user():
     admin_password = settings.ADMIN_PASSWORD
 
     # Hash the password
-    hashed_password = get_password_hash(admin_password)
+    hashed_password = hash_password(admin_password)
 
     with engine.connect() as conn:
         # Check if admin user already exists
