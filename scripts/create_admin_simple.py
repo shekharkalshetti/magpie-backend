@@ -27,12 +27,13 @@ def create_admin_user():
     # Hash the password
     hashed_password = hash_password(admin_password)
 
+    # First, ensure the users table exists (in separate transaction)
     with engine.connect() as conn:
-        # First, ensure the users table exists
         try:
             conn.execute(text("SELECT 1 FROM users LIMIT 1"))
         except Exception:
             print("Creating users table...")
+            conn.rollback()  # Rollback failed transaction
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
@@ -45,7 +46,10 @@ def create_admin_user():
                 )
             """))
             conn.commit()
+            print("✅ Users table created")
 
+    # Now create/update admin user (in new transaction)
+    with engine.connect() as conn:
         # Check if admin user already exists
         result = conn.execute(
             text("SELECT id FROM users WHERE email = :email"),
