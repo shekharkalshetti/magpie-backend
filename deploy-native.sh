@@ -180,7 +180,7 @@ ENVIRONMENT=production
 DEBUG=False
 
 # CORS
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+ALLOWED_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
 
 # Admin user (change after first login)
 ADMIN_EMAIL=admin@magpie.local
@@ -194,11 +194,17 @@ echo -e "${GREEN}✅ Backend .env created${NC}"
 
 # Run database migrations
 echo "Running database migrations..."
-alembic upgrade head
+if [ -f "alembic.ini" ]; then
+    ./venv/bin/alembic upgrade head
+else
+    echo -e "${YELLOW}⚠️  No alembic.ini found, skipping migrations${NC}"
+    echo "Creating tables directly from models..."
+    ./venv/bin/python -c "from src.database import Base, engine; Base.metadata.create_all(bind=engine)" || echo "Table creation skipped"
+fi
 
 # Create admin user
 echo "Creating admin user..."
-python scripts/seed_admin_user.py
+./venv/bin/python scripts/seed_admin_user.py || echo -e "${YELLOW}⚠️  Admin user creation skipped${NC}"
 
 echo -e "${GREEN}✅ Backend configured${NC}"
 
