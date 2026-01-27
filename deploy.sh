@@ -62,13 +62,13 @@ if ! docker ps &> /dev/null; then
     # Clean up any existing Docker data if using overlayfs
     if [ -d "/var/lib/docker" ]; then
         echo -e "${YELLOW}Cleaning up old Docker data...${NC}"
-        rm -rf /var/lib/docker/*
+        sudo rm -rf /var/lib/docker/*
     fi
     
     # Start Docker daemon in background with flags for restricted environments
     # --iptables=false and --bridge=none are needed in some containerized environments
     # --storage-driver=vfs is slower but works in restricted environments
-    dockerd --iptables=false --bridge=none --storage-driver=vfs > /tmp/dockerd.log 2>&1 &
+    sudo dockerd --iptables=false --bridge=none --storage-driver=vfs > /tmp/dockerd.log 2>&1 &
     DOCKERD_PID=$!
     
     # Wait for Docker daemon to be ready (up to 30 seconds)
@@ -93,9 +93,9 @@ if ! docker ps &> /dev/null; then
         tail -20 /tmp/dockerd.log
         echo ""
         echo -e "${YELLOW}Try running manually:${NC}"
-        echo "  pkill dockerd"
-        echo "  rm -rf /var/lib/docker/*"
-        echo "  dockerd --iptables=false --bridge=none --storage-driver=vfs &"
+        echo "  sudo pkill dockerd"
+        echo "  sudo rm -rf /var/lib/docker/*"
+        echo "  sudo dockerd --iptables=false --bridge=none --storage-driver=vfs &"
         echo "  # Wait a few seconds, then:"
         echo "  ./deploy.sh"
         echo ""
