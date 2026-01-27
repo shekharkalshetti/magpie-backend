@@ -199,12 +199,14 @@ if [ -f "alembic.ini" ]; then
 else
     echo -e "${YELLOW}⚠️  No alembic.ini found, skipping migrations${NC}"
     echo "Creating tables directly from models..."
+    export PYTHONPATH="${INSTALL_DIR}/backend:$PYTHONPATH"
     ./venv/bin/python -c "from src.database import Base, engine; Base.metadata.create_all(bind=engine)" || echo "Table creation skipped"
 fi
 
 # Create admin user
 echo "Creating admin user..."
-./venv/bin/python scripts/seed_admin_user.py || echo -e "${YELLOW}⚠️  Admin user creation skipped${NC}"
+export PYTHONPATH="${INSTALL_DIR}/backend:$PYTHONPATH"
+./venv/bin/python scripts/create_admin_simple.py || ./venv/bin/python scripts/seed_admin_user.py || echo -e "${YELLOW}⚠️  Admin user creation skipped${NC}"
 
 echo -e "${GREEN}✅ Backend configured${NC}"
 
