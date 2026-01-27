@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple script to create an admin user without importing all models
+Robust script to create an admin user - handles all edge cases
 """
 from src.auth.utils import hash_password
 from src.config import settings
@@ -18,37 +18,69 @@ def create_admin_user():
     """Create admin user directly with SQL"""
     engine = create_engine(settings.DATABASE_URL)
 
-    admin_email = settings.ADMIN_EMAIL
-    admin_password = settings.ADMIN_PASSWORD
+    # Get admin credentials from env or use defaults
+    admin_email = os.getenv('ADMIN_EMAIL', 'admin@magpie.local')
+    admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
+
+    print(f"Creating admin user: {admin_email}")
 
     # Hash the password
     hashed_password = hash_password(admin_password)
 
     with engine.connect() as conn:
+        # First, ensure the users table exists
+        try:
+            conn.execute(text("SELECT 1 FROM users LIMIT 1"))
+        except Exception:
+            print("Creating users table...")
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    is_active BOOLEAN DEFAULT true,
+                    is_superuser BOOLEAN DEFAULT false,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            conn.commit()
+
         # Check if admin user already exists
         result = conn.execute(
             text("SELECT id FROM users WHERE email = :email"),
             {"email": admin_email}
         )
 
-        if result.fetchone():
+        existing = result.fetchone()
+        if existing:
             print(f"✅ Admin user {admin_email} already exists")
-            return
+            # Update password anyway
+            conn.execute(
+                text(
+                    "UPDATE users SET password_hash = :password, updated_at = NOW() WHERE email = :email"),
+                {"email": admin_email, "password": hashed_password}
+            )
+            conn.commit()
+            print(f"✅ Password updated for {admin_email}")
+        else:
+            # Create admin user
+            conn.execute(
+                text("""
+                    INSERT INTO users (email, password_hash, is_active, is_superuser, created_at, updated_at)
+                    VALUES (:email, :password, true, true, NOW(), NOW())
+                """),
+                {"email": admin_email, "password": hashed_password}
+            )
+            conn.commit()
+            print(f"✅ Admin user created successfully!")
 
-        # Create admin user
-        conn.execute(
-            text("""
-                INSERT INTO users (email, hashed_password, is_active, is_superuser, created_at, updated_at)
-                VALUES (:email, :password, true, true, NOW(), NOW())
-            """),
-            {"email": admin_email, "password": hashed_password}
-        )
-        conn.commit()
-
-        print(f"✅ Admin user created successfully!")
-        print(f"   Email: {admin_email}")
-        print(f"   Password: {admin_password}")
-        print(f"   Please change this password after first login!")
+        print(f"\n{'='*50}")
+        print(f"Admin Credentials:")
+        print(f"Email: {admin_email}")
+        print(f"Password: {admin_password}")
+        print(f"{'='*50}")
+        print(f"\n⚠️  Please change this password after first login!")
 
 
 if __name__ == "__main__":
