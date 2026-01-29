@@ -8,6 +8,7 @@ Handles:
 - Password reset
 """
 
+import logging
 from typing import Optional
 from datetime import datetime
 
@@ -26,6 +27,7 @@ from src.users.schemas import (
 )
 from src.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -92,28 +94,13 @@ async def signup(
     The email must match the invitation email.
     """
     try:
-        # If invite token provided, validate it first
+        # If invite token provided, validate it first using service layer
         if request.invite_token:
-            from src.users.models import UserInvitation
-            from datetime import timezone
-
-            invitation = db.query(UserInvitation).filter(
-                UserInvitation.token == request.invite_token
-            ).first()
-
-            if not invitation:
-                raise AuthenticationError("Invitation not found")
-
-            if invitation.status != "pending":
-                raise AuthenticationError(
-                    f"Invitation is already {invitation.status}")
-
-            if invitation.expires_at < datetime.now(timezone.utc):
-                raise AuthenticationError("Invitation has expired")
-
-            # Email must match the invitation
-            if request.email.lower() != invitation.invited_email.lower():
-                raise AuthenticationError("Email does not match invitation")
+            UserService.validate_invitation_for_signup(
+                db,
+                invite_token=request.invite_token,
+                email=request.email,
+            )
 
         # Create user
         user = UserService.create_user(
@@ -133,7 +120,7 @@ async def signup(
                 )
             except AuthenticationError as e:
                 # Log warning but don't fail signup
-                print(f"Warning: Failed to accept invitation: {e}")
+                logger.warning(f"Failed to accept invitation: {e}")
 
         # Generate JWT token
         token = generate_jwt_token(

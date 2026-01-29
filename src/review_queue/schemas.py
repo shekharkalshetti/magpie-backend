@@ -1,7 +1,15 @@
 """Schemas for ReviewQueue API requests and responses."""
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel, ConfigDict
+from enum import Enum
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ReviewStatus(str, Enum):
+    """Valid review statuses."""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class ReviewQueueItemResponse(BaseModel):
@@ -28,8 +36,17 @@ class ReviewQueueItemResponse(BaseModel):
 class UpdateReviewItemRequest(BaseModel):
     """Request to update a review queue item."""
 
-    status: str  # pending, approved, rejected
+    status: ReviewStatus
     notes: Optional[str] = None
+
+
+class ReviewQueueListResponse(BaseModel):
+    """Paginated list of review queue items."""
+    
+    items: List[ReviewQueueItemResponse]
+    total: int
+    skip: int = Field(ge=0)
+    limit: int = Field(ge=1)
 
 
 class ReviewQueueStatsResponse(BaseModel):

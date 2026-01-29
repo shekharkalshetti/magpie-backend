@@ -6,11 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.database import get_db
+from src.models import ProjectUser
+from src.projects.dependencies import verify_project_access
 from src.users.router import get_current_user_from_token
 from src.users.schemas import UserResponse
 from src.review_queue.service import ReviewQueueService
 from src.review_queue.schemas import (
     ReviewQueueItemResponse,
+    ReviewQueueListResponse,
     UpdateReviewItemRequest,
     ReviewQueueStatsResponse,
 )
@@ -18,16 +21,49 @@ from src.review_queue.schemas import (
 router = APIRouter(tags=["Review Queue"])
 
 
+def _verify_item_access(
+    item_id: UUID,
+    current_user: UserResponse,
+    db: Session,
+) -> "ReviewQueueItem":
+    """
+    Helper to verify user has access to a review queue item.
+    
+    Returns the item if found and user has access.
+    Raises HTTPException if item not found or user lacks access.
+    """
+    item = ReviewQueueService.get_review_item(db=db, item_id=item_id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Review item not found",
+        )
+
+    # Verify user has access to the project
+    project_user = (
+        db.query(ProjectUser)
+        .filter_by(user_id=current_user.id, project_id=item.project_id)
+        .first()
+    )
+
+    if not project_user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have access to this project",
+        )
+
+    return item
+
+
 @router.get(
     "/projects/{project_id}/review-queue",
-    response_model=dict,
+    response_model=ReviewQueueListResponse,
     summary="Get review queue items",
     description="Get review queue items for a project with optional filtering",
 )
 async def get_review_queue(
-    project_id: str,
+    project_id: str = Depends(verify_project_access),
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user_from_token),
     status_filter: Optional[str] = None,
     severity: Optional[str] = None,
     content_type: Optional[str] = None,
@@ -43,21 +79,6 @@ async def get_review_queue(
 
     Returns paginated list of review items.
     """
-    # Verify user has access to project
-    from src.models import ProjectUser
-
-    project_user = (
-        db.query(ProjectUser)
-        .filter_by(user_id=current_user.id, project_id=project_id)
-        .first()
-    )
-
-    if not project_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have access to this project",
-        )
-
     items, total = ReviewQueueService.get_project_review_queue(
         db=db,
         project_id=project_id,
@@ -68,12 +89,12 @@ async def get_review_queue(
         limit=limit,
     )
 
-    return {
-        "items": [ReviewQueueItemResponse.model_validate(item) for item in items],
-        "total": total,
-        "skip": skip,
-        "limit": limit,
-    }
+    return ReviewQueueListResponse(
+        items=[ReviewQueueItemResponse.model_validate(item) for item in items],
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.get(
@@ -83,26 +104,10 @@ async def get_review_queue(
     description="Get summary statistics for review queue",
 )
 async def get_review_queue_stats(
-    project_id: str,
+    project_id: str = Depends(verify_project_access),
     db: Session = Depends(get_db),
-    current_user: UserResponse = Depends(get_current_user_from_token),
 ):
     """Get review queue statistics for a project."""
-    # Verify user has access to project
-    from src.models import ProjectUser
-
-    project_user = (
-        db.query(ProjectUser)
-        .filter_by(user_id=current_user.id, project_id=project_id)
-        .first()
-    )
-
-    if not project_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have access to this project",
-        )
-
     stats = ReviewQueueService.get_stats(db=db, project_id=project_id)
     return ReviewQueueStatsResponse(**stats)
 
@@ -115,8 +120,8 @@ async def get_review_queue_stats(
 )
 async def get_review_item(
     item_id: str,
-    db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
 ):
     """Get a specific review queue item."""
     try:
@@ -127,28 +132,7 @@ async def get_review_item(
             detail="Invalid item_id format",
         )
 
-    item = ReviewQueueService.get_review_item(db=db, item_id=item_uuid)
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Review item not found",
-        )
-
-    # Verify user has access to the project
-    from src.models import ProjectUser
-
-    project_user = (
-        db.query(ProjectUser)
-        .filter_by(user_id=current_user.id, project_id=item.project_id)
-        .first()
-    )
-
-    if not project_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have access to this project",
-        )
-
+    item = _verify_item_access(item_uuid, current_user, db)
     return ReviewQueueItemResponse.model_validate(item)
 
 
@@ -161,8 +145,8 @@ async def get_review_item(
 async def update_review_item(
     item_id: str,
     request: UpdateReviewItemRequest,
-    db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user_from_token),
+    db: Session = Depends(get_db),
 ):
     """
     Update a review queue item with decision and notes.
@@ -178,42 +162,14 @@ async def update_review_item(
             detail="Invalid item_id format",
         )
 
-    # Get the item
-    item = ReviewQueueService.get_review_item(db=db, item_id=item_uuid)
-    if not item:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Review item not found",
-        )
+    # Verify access and get the item
+    item = _verify_item_access(item_uuid, current_user, db)
 
-    # Verify user has access to the project
-    from src.models import ProjectUser
-
-    project_user = (
-        db.query(ProjectUser)
-        .filter_by(user_id=current_user.id, project_id=item.project_id)
-        .first()
-    )
-
-    if not project_user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User does not have access to this project",
-        )
-
-    # Validate status
-    valid_statuses = ["pending", "approved", "rejected"]
-    if request.status not in valid_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
-        )
-
-    # Update the item
+    # Update the item (status is now validated by Pydantic enum)
     updated_item = ReviewQueueService.update_review_item(
         db=db,
         item_id=item_uuid,
-        status=request.status,
+        status=request.status.value,  # Convert enum to string
         notes=request.notes,
         reviewed_by_user_id=current_user.id,
     )
