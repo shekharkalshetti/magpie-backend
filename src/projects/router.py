@@ -55,20 +55,41 @@ async def create_project(
     "/",
     response_model=list[ProjectResponse],
     summary="List all projects",
-    description="List all projects with pagination support.",
+    description="List all projects the authenticated user has access to.",
 )
 async def list_projects(
+    current_user: UserResponse = Depends(get_current_user_from_token),
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
 ):
     """
-    List all projects.
+    List projects accessible to the authenticated user.
 
     Supports pagination via skip/limit query parameters.
-    This endpoint does not require authentication.
+    Returns only projects the user is a member of.
     """
-    projects = await service.list_projects(db, skip=skip, limit=limit)
+    # Get only projects the user has access to
+    from src.models import ProjectUser
+    
+    # Query projects through ProjectUser relationship
+    project_ids = (
+        db.query(ProjectUser.project_id)
+        .filter(ProjectUser.user_id == current_user.id)
+        .all()
+    )
+    project_id_list = [pid[0] for pid in project_ids]
+    
+    if not project_id_list:
+        return []
+    
+    projects = (
+        db.query(Project)
+        .filter(Project.id.in_(project_id_list))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return [ProjectResponse.from_orm_model(p) for p in projects]
 
 
