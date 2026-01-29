@@ -63,20 +63,13 @@ async def list_audit_logs(
         user_id=user_id,
     )
 
-    # Count total records for this project (approximate)
-    from sqlalchemy import func
-    from src.audit_logs.models import AuditLog
-
-    total_query = db.query(func.count(AuditLog.id)).filter(
-        AuditLog.project_id == project_id)
-
-    # Apply same filters to total count
-    if action_filter:
-        total_query = total_query.filter(AuditLog.action == action_filter)
-    if user_id:
-        total_query = total_query.filter(AuditLog.user_id == user_id)
-
-    total = total_query.scalar() or 0
+    # Count total records using service method
+    total = AuditLogService.count_audit_logs(
+        db=db,
+        project_id=project_id,
+        action=action_filter,
+        user_id=user_id,
+    )
 
     # Convert audit logs using the response schema to include user_email
     audit_log_responses = [

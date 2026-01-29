@@ -95,3 +95,36 @@ class AuditLogService:
     def get_audit_log(db: Session, audit_log_id: str) -> Optional[AuditLog]:
         """Get a single audit log by ID."""
         return db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
+
+    @staticmethod
+    def count_audit_logs(
+        db: Session,
+        project_id: str,
+        user_id: Optional[str] = None,
+        action: Optional[AuditAction] = None,
+    ) -> int:
+        """
+        Count audit logs for a project with optional filters.
+
+        Args:
+            db: Database session
+            project_id: Project ID to filter by
+            user_id: Optional filter by user
+            action: Optional filter by action type
+
+        Returns:
+            Total count of matching audit logs
+        """
+        from sqlalchemy import func
+
+        query = db.query(func.count(AuditLog.id)).filter(
+            AuditLog.project_id == project_id
+        )
+
+        if user_id:
+            query = query.filter(AuditLog.user_id == user_id)
+
+        if action:
+            query = query.filter(AuditLog.action == action)
+
+        return query.scalar() or 0

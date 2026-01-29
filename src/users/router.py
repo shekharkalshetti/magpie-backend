@@ -94,28 +94,13 @@ async def signup(
     The email must match the invitation email.
     """
     try:
-        # If invite token provided, validate it first
+        # If invite token provided, validate it first using service layer
         if request.invite_token:
-            from src.users.models import UserInvitation
-            from datetime import timezone
-
-            invitation = db.query(UserInvitation).filter(
-                UserInvitation.token == request.invite_token
-            ).first()
-
-            if not invitation:
-                raise AuthenticationError("Invitation not found")
-
-            if invitation.status != "pending":
-                raise AuthenticationError(
-                    f"Invitation is already {invitation.status}")
-
-            if invitation.expires_at < datetime.now(timezone.utc):
-                raise AuthenticationError("Invitation has expired")
-
-            # Email must match the invitation
-            if request.email.lower() != invitation.invited_email.lower():
-                raise AuthenticationError("Email does not match invitation")
+            UserService.validate_invitation_for_signup(
+                db,
+                invite_token=request.invite_token,
+                email=request.email,
+            )
 
         # Create user
         user = UserService.create_user(

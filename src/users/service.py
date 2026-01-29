@@ -24,6 +24,46 @@ class UserService:
     """Service for user management operations."""
 
     @staticmethod
+    def validate_invitation_for_signup(
+        db: Session,
+        invite_token: str,
+        email: str,
+    ) -> "UserInvitation":
+        """
+        Validate an invitation token for user signup.
+
+        Args:
+            db: Database session
+            invite_token: Invitation token
+            email: Email address of the user signing up
+
+        Returns:
+            UserInvitation object if valid
+
+        Raises:
+            AuthenticationError: If invitation is invalid, expired, or email doesn't match
+        """
+        invitation = db.query(UserInvitation).filter(
+            UserInvitation.token == invite_token
+        ).first()
+
+        if not invitation:
+            raise AuthenticationError("Invitation not found")
+
+        if invitation.status != "pending":
+            raise AuthenticationError(
+                f"Invitation is already {invitation.status}")
+
+        if invitation.expires_at < datetime.now(timezone.utc):
+            raise AuthenticationError("Invitation has expired")
+
+        # Email must match the invitation
+        if email.lower() != invitation.invited_email.lower():
+            raise AuthenticationError("Email does not match invitation")
+
+        return invitation
+
+    @staticmethod
     def create_user(
         db: Session,
         email: str,
