@@ -144,6 +144,7 @@ dump.rdb
 # Logs
 logs/
 *.log
+data/
 
 # Alembic
 alembic/versions/__pycache__/
