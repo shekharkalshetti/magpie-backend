@@ -48,6 +48,35 @@ coverage.xml
 
 # Translations
 *.mo
+
+# Environment and config
+.env
+.env.*
+!.env.example
+
+# Redis dumps
+dump.rdb
+*.rdb
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ruff cache
+.ruff_cache/
 *.pot
 
 # Environments

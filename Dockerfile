@@ -14,13 +14,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements.txt requirements/base.txt requirements/prod.txt ./
+COPY requirements/base.txt requirements/prod.txt ./requirements/
 
 # Install Python dependencies to a virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements/prod.txt
 
 # Production stage
 FROM python:3.12-slim as production
@@ -43,7 +43,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy application code
 COPY --chown=appuser:appuser src ./src
 COPY --chown=appuser:appuser scripts ./scripts
-COPY --chown=appuser:appuser alembic.ini ./
 
 # Create data directory for prompts
 RUN mkdir -p /app/data && chown appuser:appuser /app/data

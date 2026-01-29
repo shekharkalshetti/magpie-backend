@@ -15,7 +15,7 @@ from src.policies.models import Policy
 # Default shared prompts directory (configurable via env)
 DEFAULT_PROMPTS_DIR = os.getenv(
     "TRITON_PROMPTS_DIR",
-    str(Path(__file__).parent.parent.parent.parent / "data" / "prompts")
+    str(Path(__file__).parent.parent.parent / "data" / "prompts")
 )
 
 

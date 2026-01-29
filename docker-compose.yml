@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -84,8 +82,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      llm:
-        condition: service_healthy
     environment:
       # Database
       - DATABASE_URL=postgresql://${POSTGRES_USER:-magpie}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-magpie}
@@ -111,6 +107,8 @@ services:
       - ./data:/app/data
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 15s
@@ -136,12 +134,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      llm:
-        condition: service_healthy
     environment:
       # Same env as API
       - DATABASE_URL=postgresql://${POSTGRES_USER:-magpie}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-magpie}
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - VLLM_URL=http://llm:1234
       - SECRET_KEY=${SECRET_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}

@@ -13,6 +13,7 @@ env/
 ENV/
 .venv
 *.egg-info/
+.ruff_cache/
 
 # IDE
 .vscode
@@ -23,11 +24,41 @@ ENV/
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Testing
 .pytest_cache
+tests/
+.coverage
+htmlcov/
+
+# Logs
+logs/
+*.log
+
+# Redis
+dump.rdb
+*.rdb
+
+# Docker
+docker-compose.yml
+Dockerfile*
+.dockerignore
+
+# Documentation
+README.md
+*.md
+!requirements.txt
+
+# Scripts (except setup)
+setup.sh
+
+# SSL (handled separately in compose)
+ssl/
+
+# Data (mounted as volume)
+data/
 .coverage
 htmlcov/
 .tox/
