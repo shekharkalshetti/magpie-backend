@@ -2,7 +2,7 @@
 # Optimized for fast startup and small image size
 
 # Build stage - install dependencies
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements/prod.txt
 
 # Production stage
-FROM python:3.12-slim as production
+FROM python:3.12-slim AS production
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
