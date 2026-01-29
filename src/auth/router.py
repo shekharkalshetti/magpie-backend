@@ -43,8 +43,8 @@ async def list_api_keys(
     description="Generate a new API key for a project. The full key is only returned once. Requires project access.",
 )
 async def create_api_key(
+    key_data: ApiKeyCreate,
     project_id: str = Depends(verify_project_access),
-    key_data: ApiKeyCreate = None,
     db: Session = Depends(get_db),
 ):
     """
@@ -76,5 +76,4 @@ async def delete_api_key(
     This immediately invalidates the key - any requests using it will fail.
     """
     await service.delete_api_key(db, project_id, key_id)
-    return None
     return None
