@@ -8,6 +8,8 @@ from typing import Optional, Annotated
 from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from email_validator import EmailNotValidError, validate_email
 
+from src.users.models import UserRole
+
 
 class EmailValidation(str):
     """Email field that allows test domains like .local"""
@@ -97,7 +99,7 @@ class InviteUserRequest(BaseModel):
 
     email: str = Field(...,
                        description="Email address (allows test domains like .local)")
-    role: Optional[str] = "member"  # admin, member, viewer
+    role: UserRole = UserRole.MEMBER  # Use enum with default value
 
     @field_validator("email")
     @classmethod

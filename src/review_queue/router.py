@@ -13,6 +13,7 @@ from src.users.schemas import UserResponse
 from src.review_queue.service import ReviewQueueService
 from src.review_queue.schemas import (
     ReviewQueueItemResponse,
+    ReviewQueueListResponse,
     UpdateReviewItemRequest,
     ReviewQueueStatsResponse,
 )
@@ -56,7 +57,7 @@ def _verify_item_access(
 
 @router.get(
     "/projects/{project_id}/review-queue",
-    response_model=dict,
+    response_model=ReviewQueueListResponse,
     summary="Get review queue items",
     description="Get review queue items for a project with optional filtering",
 )
@@ -88,12 +89,12 @@ async def get_review_queue(
         limit=limit,
     )
 
-    return {
-        "items": [ReviewQueueItemResponse.model_validate(item) for item in items],
-        "total": total,
-        "skip": skip,
-        "limit": limit,
-    }
+    return ReviewQueueListResponse(
+        items=[ReviewQueueItemResponse.model_validate(item) for item in items],
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.get(
@@ -164,19 +165,11 @@ async def update_review_item(
     # Verify access and get the item
     item = _verify_item_access(item_uuid, current_user, db)
 
-    # Validate status
-    valid_statuses = ["pending", "approved", "rejected"]
-    if request.status not in valid_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
-        )
-
-    # Update the item
+    # Update the item (status is now validated by Pydantic enum)
     updated_item = ReviewQueueService.update_review_item(
         db=db,
         item_id=item_uuid,
-        status=request.status,
+        status=request.status.value,  # Convert enum to string
         notes=request.notes,
         reviewed_by_user_id=current_user.id,
     )

@@ -31,21 +31,12 @@ async def invite_member(
 
     Only project admins can invite members.
     """
-    # Convert string role to UserRole enum
-    role = UserRole.MEMBER
-    if request.role:
-        role_lower = request.role.lower()
-        if role_lower == "admin":
-            role = UserRole.ADMIN
-        elif role_lower == "viewer":
-            role = UserRole.VIEWER
-
     invitation = TeamMembersService.invite_member(
         session=session,
         project_id=project_id,
         invited_by_user_id=current_user_id,
         invited_email=request.email,
-        role=role,
+        role=request.role,  # Already validated as UserRole enum by Pydantic
     )
 
     return InvitationResponse.from_orm(invitation)

@@ -5,6 +5,7 @@ Handles policy CRUD operations and configuration management.
 """
 
 import json
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
@@ -30,6 +31,7 @@ from src.policies.schemas import (
 from src.audit_logs.service import AuditLogService
 from src.models import AuditAction
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -124,7 +126,7 @@ async def update_policy(
                 "config": old_policy.config,
             }, default=str)
         except Exception as e:
-            print(f"Error serializing old policy: {e}")
+            logger.error(f"Error serializing old policy: {e}")
             old_policy_dict = None
 
         # Update policy
@@ -139,7 +141,7 @@ async def update_policy(
                 "config": policy.config,
             }, default=str)
         except Exception as e:
-            print(f"Error serializing new policy: {e}")
+            logger.error(f"Error serializing new policy: {e}")
             new_policy_dict = None
 
         # Log to audit logs
@@ -154,7 +156,7 @@ async def update_policy(
                     description="Policy configuration updated",
                 )
             except Exception as e:
-                print(f"Error creating audit log: {e}")
+                logger.error(f"Error creating audit log: {e}")
 
         # Commit the transaction to ensure audit log is saved
         db.commit()
@@ -192,7 +194,7 @@ async def delete_policy(
                 "config": policy.config,
             }, default=str)
         except Exception as e:
-            print(f"Error serializing policy for deletion: {e}")
+            logger.error(f"Error serializing policy for deletion: {e}")
             policy_dict = None
 
         # Delete policy
@@ -210,9 +212,7 @@ async def delete_policy(
                     description="Policy deleted",
                 )
             except Exception as e:
-                print(f"Error creating audit log for deletion: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error(f"Error creating audit log for deletion: {e}", exc_info=True)
 
         # Commit the transaction to ensure audit log is saved
         db.commit()
@@ -251,7 +251,7 @@ async def reset_policy(
                 )
                 db.commit()
             except Exception as e:
-                print(f"Error creating audit log for reset: {e}")
+                logger.error(f"Error creating audit log for reset: {e}")
 
         return PolicyResponse.from_orm_model(policy)
     except PolicyNotFoundError as e:
@@ -299,7 +299,7 @@ async def toggle_category(
                     description=f"Toggled category {data.category_id} to {data.enabled}",
                 )
             except Exception as e:
-                print(f"Error creating audit log for toggle_category: {e}")
+                logger.error(f"Error creating audit log for toggle_category: {e}")
 
         # Always commit the policy changes
         db.commit()
@@ -350,7 +350,7 @@ async def toggle_section(
                     description=f"Toggled section {data.section_id} to {data.enabled}",
                 )
             except Exception as e:
-                print(f"Error creating audit log for toggle_section: {e}")
+                logger.error(f"Error creating audit log for toggle_section: {e}")
 
         # Always commit the policy changes
         db.commit()
@@ -406,7 +406,7 @@ async def toggle_option(
                     description=f"Toggled option {data.option_id} to {data.enabled}",
                 )
             except Exception as e:
-                print(f"Error creating audit log for toggle_option: {e}")
+                logger.error(f"Error creating audit log for toggle_option: {e}")
 
         # Always commit the policy changes
         db.commit()
@@ -455,7 +455,7 @@ async def bulk_toggle(
                     description=f"Bulk toggle operation with {len(data.operations)} changes",
                 )
             except Exception as e:
-                print(f"Error creating audit log for bulk_toggle: {e}")
+                logger.error(f"Error creating audit log for bulk_toggle: {e}")
 
         # Always commit the policy changes
         db.commit()

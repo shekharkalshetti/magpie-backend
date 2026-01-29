@@ -8,6 +8,7 @@ Handles:
 - Password reset
 """
 
+import logging
 from typing import Optional
 from datetime import datetime
 
@@ -26,6 +27,7 @@ from src.users.schemas import (
 )
 from src.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -133,7 +135,7 @@ async def signup(
                 )
             except AuthenticationError as e:
                 # Log warning but don't fail signup
-                print(f"Warning: Failed to accept invitation: {e}")
+                logger.warning(f"Failed to accept invitation: {e}")
 
         # Generate JWT token
         token = generate_jwt_token(
