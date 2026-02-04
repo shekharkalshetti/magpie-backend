@@ -72,11 +72,6 @@ dump.rdb
 # Logs
 *.log
 
-# Docker
-Dockerfile*
-docker-compose*.yml
-.dockerignore
-
 # CI/CD
 .github/
 

@@ -1,9 +1,10 @@
 """
-Global configuration management for the Triton backend.
+Global configuration management for the Magpie backend.
 
 Uses pydantic-settings for environment variable handling with validation.
 """
 
+import json
 from pathlib import Path
 
 from pydantic import field_validator
@@ -58,7 +59,6 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             # Try parsing as JSON array first
             if v.strip().startswith("["):
-                import json
                 try:
                     return json.loads(v)
                 except json.JSONDecodeError:
