@@ -87,6 +87,9 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-magpie}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-magpie}
       # Redis
       - REDIS_URL=redis://redis:6379/0
+      # Celery
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
       # LLM endpoint (internal Docker network)
       - VLLM_URL=http://llm:1234
       # Security
@@ -128,7 +131,7 @@ services:
       target: production
     container_name: magpie-worker
     restart: unless-stopped
-    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2 -Q celery,red_team
     depends_on:
       postgres:
         condition: service_healthy

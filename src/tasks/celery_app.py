@@ -46,12 +46,20 @@ app.conf.task_queues = (
         routing_key="moderation",
         durable=True,
     ),
+    Queue(
+        "red_team",
+        exchange=default_exchange,
+        routing_key="red_team",
+        durable=True,
+    ),
 )
 
 # Route tasks to specific queues
 app.conf.task_routes = {
     "src.tasks.moderation_tasks.moderate_output": {"queue": "moderation"},
+    "src.tasks.red_team_tasks.execute_campaign": {"queue": "red_team"},
 }
 
 # Import tasks to register them
 from . import moderation_tasks  # noqa: F401, E402
+from . import red_team_tasks  # noqa: F401, E402

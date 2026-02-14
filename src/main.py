@@ -23,6 +23,7 @@ from src.logs.router import router as logs_router
 from src.policies.router import router as policies_router
 from src.projects.router import router as projects_router
 from src.review_queue.router import router as review_queue_router
+from src.red_teaming.router import router as red_teaming_router
 from src.users.router import router as auth_router
 from src.users.team_router import router as team_router
 
@@ -100,6 +101,11 @@ app.include_router(
     review_queue_router,
     prefix="/api/v1",
     tags=["Review Queue"],
+)
+app.include_router(
+    red_teaming_router,
+    prefix="/api/v1",
+    tags=["Red Teaming"],
 )
 
 
