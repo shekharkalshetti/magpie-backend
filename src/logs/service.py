@@ -96,6 +96,8 @@ async def list_execution_logs(
     limit: int = 100,
     trace_id: Optional[str] = None,
     include_flagged: bool = False,
+    custom_key: Optional[str] = None,
+    custom_value: Optional[str] = None,
 ) -> list[ExecutionLog]:
     """
     List execution logs for a project.
@@ -110,6 +112,8 @@ async def list_execution_logs(
         limit: Maximum number of records to return
         trace_id: Optional trace_id filter
         include_flagged: If True, includes flagged items; if False, excludes them
+        custom_key: Optional key to filter by in custom_data JSON
+        custom_value: Optional value to match for the custom_key
 
     Returns:
         List of ExecutionLog objects
@@ -119,6 +123,11 @@ async def list_execution_logs(
 
     if trace_id:
         query = query.filter(ExecutionLog.trace_id == trace_id)
+
+    if custom_key and custom_value is not None:
+        query = query.filter(
+            func.json_extract_path_text(ExecutionLog.custom_data, custom_key) == custom_value
+        )
 
     # Exclude flagged items by default
     if not include_flagged:
