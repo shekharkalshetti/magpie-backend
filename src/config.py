@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # Application
     DEBUG: bool = False
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
-    APP_VERSION: str = "0.1.0"
+    APP_VERSION: str = "0.2.0"
 
     # Database (Supabase PostgreSQL)
     DATABASE_URL: str
