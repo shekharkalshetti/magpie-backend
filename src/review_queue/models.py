@@ -17,6 +17,7 @@ class ContentType(str, PyEnum):
     """Type of content being reviewed."""
     USER_INPUT = "user_input"
     AI_OUTPUT = "ai_output"
+    SCHEMA_VIOLATION = "schema_violation"
 
 
 class ReviewStatus(str, PyEnum):

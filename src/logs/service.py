@@ -64,6 +64,7 @@ async def create_execution_log(
             total_cost=total_cost,
             pii_detection=data.pii_detection,
             content_moderation=data.content_moderation,
+            schema_validation=data.schema_validation,
         )
 
         db.add(execution_log)
@@ -72,6 +73,9 @@ async def create_execution_log(
 
         # Auto-create ReviewQueue item for blocked inputs with content moderation violations
         _create_review_queue_for_blocked_input(db, execution_log)
+
+        # Auto-create ReviewQueue item for schema validation failures (block + flag)
+        _create_review_queue_for_schema_violation(db, execution_log)
 
         # Commit any ReviewQueue items that were added
         try:
@@ -317,3 +321,54 @@ def _create_review_queue_for_blocked_input(db: Session, execution_log: Execution
         # Fail open - don't crash if ReviewQueue creation fails
         # Just log and continue - execution log already committed
         print(f"[ReviewQueue] Failed to create item: {str(e)}")
+
+
+def _create_review_queue_for_schema_violation(db: Session, execution_log: ExecutionLog) -> None:
+    """
+    Auto-create ReviewQueue item for schema validation failures.
+
+    Both block and flag mode violations are added to the review queue
+    so humans can audit all schema mismatches.
+
+    Args:
+        db: Database session
+        execution_log: The ExecutionLog that was just created
+    """
+    try:
+        if not execution_log.schema_validation:
+            return
+
+        schema_data = execution_log.schema_validation
+
+        # Only create review items for invalid outputs
+        if schema_data.get("valid", True):
+            return
+
+        on_fail = schema_data.get("on_fail", "block")
+        schema_name = schema_data.get("schema_name", "Unknown")
+        errors = schema_data.get("errors", [])
+
+        # Block mode = high severity, flag mode = medium
+        severity = ModerationSeverity.HIGH.value if on_fail == "block" else ModerationSeverity.MEDIUM.value
+
+        review_item = ReviewQueue(
+            id=str(uuid.uuid4()),
+            execution_log_id=execution_log.id,
+            project_id=execution_log.project_id,
+            content_type="schema_violation",
+            content_text=execution_log.output[:2000] if execution_log.output else "",
+            severity=severity,
+            flagged_policies=[f"schema:{schema_name}"],
+            violation_reasons={
+                "schema_name": schema_name,
+                "errors": errors,
+                "on_fail": on_fail,
+            },
+            status="pending",
+        )
+
+        db.add(review_item)
+        db.flush()
+
+    except Exception as e:
+        print(f"[ReviewQueue] Failed to create schema violation item: {str(e)}")

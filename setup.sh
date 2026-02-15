@@ -134,7 +134,7 @@ if [ "$HAS_GPU" = true ]; then
 else
     # Start services without LLM
     log_info "Starting services (without LLM)..."
-    docker compose up -d postgres redis api worker nginx
+    docker compose up -d --build postgres redis api worker nginx
 fi
 
 log_success "Docker services started"
